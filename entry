@@ -1,0 +1,44 @@
+#!/bin/bash
+export API_PORT=65000
+export WEB_PORT=8000
+
+echo -e "\033[1;31m ___________.__              ____________________  _____    \033[0m"
+echo -e "\033[1;31m \_   _____/|__|______   ____\______   \______   \/  _  \   \033[0m"
+echo -e "\033[1;31m  |    __)  |  \_  __ \_/ __ \|       _/|     ___/  /_\  \  \033[0m"
+echo -e "\033[1;31m  |     \   |  ||  | \/\  ___/|    |   \|    |  /    |    \ \033[0m"
+echo -e "\033[1;31m  \___  /   |__||__|    \___  >____|_  /|____|  \____|__  / \033[0m"
+echo -e "\033[1;31m      \/                    \/       \/                 \/  \033[0m"
+echo -e "\033[0;32m                                                  server    \033[0m"
+
+if [ "${ADDR}"L = ""L ]; then
+echo "No ADDR Specified, please provide this computer IP"
+exit 8
+fi
+
+LISTENCONF=${OPENRESTY}/nginx/conf/listen.conf
+CONTRLCONF=${OPENRESTY}/nginx/conf/listen-control.conf
+
+if ! mount | grep ' /user ' >/dev/null 2>&1; then
+echo "The /user directory is not mounted from the docker host."
+exit 8
+fi
+if [ -f /user/environment ]; then
+while IFS="=" read -r key value; do
+if [[ -z $key || $key =~ ^\s*# ]]; then
+                continue
+fi
+key=$(echo $key | xargs)
+value=$(echo $value | xargs)
+export "$key=$value"
+done < /user/environment
+fi
+capabilities=$(grep CapEff /proc/$$/status | cut -f2)
+if [ $(( (0x$capabilities & (1 << 21)) != 0 )) -eq 0 ]; then
+echo "Container is NOT running in privileged mode."
+exit 8
+fi
+echo "listen ${WEB_PORT:-8000};"             > ${LISTENCONF}
+
+echo "listen ${API_PORT:-65000};"            > ${CONTRLCONF}
+echo "server_name ${DOMAIN:-firerpa.local};" >>${LISTENCONF}
+exec supervisord $@
