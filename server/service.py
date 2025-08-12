@@ -320,6 +320,10 @@ class PlatformI18NTranslateListHandler(BaseHttpService):
 
 
 class PlatformSpecificDeviceHandler(BaseHttpService):
+    """
+    查看和删除指定设备信息
+    """
+
     def to_dict(self, r):
         d = r.to_dict(exclude=[Device.id,
                                Device.lock,
@@ -426,6 +430,10 @@ class PlatformDeviceAllocHandler(BaseHttpService):
 
 
 class PlatformDeviceHandler(BaseHttpService):
+    """
+    添加设备和返回设备列表
+    """
+
     def to_dict(self, r):
         return r.to_dict(only=[Device.domain,
                                Device.comment,
@@ -461,10 +469,10 @@ class PlatformDeviceHandler(BaseHttpService):
         domain = r_string(16)
         group = self.get_login_group_admin()
         ip = self.get_argument("ip", None)
-        auth, cert = generate_client_pem(domain)
-        cfg = dict()
         addr = self.application.settings["addr"]
         port = self.application.settings["port"]
+
+        cfg = dict()
         cfg["properties.remote"] = f"http://{addr}:{port}/api/v1/{domain}/config"
         cfg["properties.tries"] = "60"
         cfg = "\n".join(["%s=%s" % (k, v) for k, v in cfg.items()])
@@ -474,10 +482,17 @@ class PlatformDeviceHandler(BaseHttpService):
         res = {}
         res["domain"] = domain
         res["dev_id"] = dev_id
-        res["cert"] = cert.decode()
-        res["auth"] = auth
+
+        # 生成客户端证书
+        disable_mtls = self.application.settings["disable-mtls"] == "true"
+        if not disable_mtls:
+            auth, cert = generate_client_pem(domain)
+            res["cert"] = cert.decode()
+            res["auth"] = auth
+
         device = Device.create(**res)
-        save_cert(certdir, domain, res["cert"])
+        if not disable_mtls:
+            save_cert(certdir, domain, res["cert"])
         self.alloc_device_to_group(domain, group)
         return dict(data=self.to_dict(device))
 
@@ -912,6 +927,7 @@ class Service(object):
         self.cfg["event"] = f"ws://{options.addr}:{os.environ['WEB_PORT']}/ws/event"
         self.cfg["port"] = int(os.environ["WEB_PORT"])
         self.cfg["addr"] = options.addr
+        self.cfg["disable-mtls"] = os.environ['DISABLE_MTLS']  # 禁用双向认证
         self.init()
 
         logging.getLogger().setLevel(logging.INFO)
