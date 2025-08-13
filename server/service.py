@@ -484,14 +484,17 @@ class PlatformDeviceHandler(BaseHttpService):
         res["dev_id"] = dev_id
 
         # 生成客户端证书
-        disable_mtls = self.application.settings["disable-mtls"] == "true"
+        disable_mtls = self.application.settings["disable-mtls"]
         if not disable_mtls:
+            logging.info("mtls enabled, generate client certificate")
             auth, cert = generate_client_pem(domain)
             res["cert"] = cert.decode()
             res["auth"] = auth
 
         device = Device.create(**res)
         if not disable_mtls:
+            logging.info("mtls enabled, save client certificate")
+
             save_cert(certdir, domain, res["cert"])
         self.alloc_device_to_group(domain, group)
         return dict(data=self.to_dict(device))
@@ -569,6 +572,9 @@ class PlatformDeviceDistributeRegionHandler(BaseHttpService):
 
 
 class PropertiesConfigHandler(BaseHttpService):
+    """
+    设备定时拉取设备的配置信息
+    """
     def prepare(self):
         return None
 
@@ -577,7 +583,11 @@ class PropertiesConfigHandler(BaseHttpService):
         cfg = dict()
         cfg["event"] = self.application.settings["event"]
         cfg["ssl-web-credential"] = "firerpa.2025"  # the fixed device auth
-        cfg["cert"] = b64encode(device.cert.encode()).decode()
+        disable_mtls = self.application.settings["disable-mtls"]
+        if not disable_mtls:
+            logging.info("mtls enabled, b64encode client certificate")
+            print("mtls enabled, b64encode client certificate")
+            cfg["cert"] = b64encode(device.cert.encode()).decode()
         cfg = "\n".join(["%s=%s" % (k, v) for k, v in cfg.items()])
         self.finish(cfg)
 
@@ -927,7 +937,8 @@ class Service(object):
         self.cfg["event"] = f"ws://{options.addr}:{os.environ['WEB_PORT']}/ws/event"
         self.cfg["port"] = int(os.environ["WEB_PORT"])
         self.cfg["addr"] = options.addr
-        self.cfg["disable-mtls"] = os.environ['DISABLE_MTLS']  # 禁用双向认证
+        # self.cfg["disable-mtls"] = os.environ.get('DISABLE_MTLS', 'false').lower() == 'true'  # 是否禁用双向认证
+        self.cfg["disable-mtls"] = True  # 是否禁用双向认证
         self.init()
 
         logging.getLogger().setLevel(logging.INFO)

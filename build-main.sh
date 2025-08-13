@@ -34,9 +34,9 @@ supervisor.rpcinterface_factory=supervisor.rpcinterface:make_main_rpcinterface
 childlogdir=/run
 logfile=/dev/stdout
 logfile_maxbytes=0
-loglevel=error
+loglevel=info
 nodaemon=true
-silent=true
+silent=false
 pidfile=/run/service.pid
 user=root
 
