@@ -937,8 +937,7 @@ class Service(object):
         self.cfg["event"] = f"ws://{options.addr}:{os.environ['WEB_PORT']}/ws/event"
         self.cfg["port"] = int(os.environ["WEB_PORT"])
         self.cfg["addr"] = options.addr
-        # self.cfg["disable-mtls"] = os.environ.get('DISABLE_MTLS', 'false').lower() == 'true'  # 是否禁用双向认证
-        self.cfg["disable-mtls"] = True  # 是否禁用双向认证
+        self.cfg["disable-mtls"] = os.environ.get('DISABLE_MTLS', 'false').lower() == 'true'  # 是否禁用双向认证
         self.init()
 
         logging.getLogger().setLevel(logging.INFO)

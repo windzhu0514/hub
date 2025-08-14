@@ -49,15 +49,13 @@ ngx.var.target_uid = uid
 
 ngx.var.target_uri = ngx.re.sub(ngx.var.uri, "^/d/[0-9a-z]+/", "/$1")
 
--- local disable_mtls = os.getenv("DISABLE_MTLS")
--- ngx.log(ngx.ERR, "DISABLE_MTLS: " .. disable_mtls)
--- print("DISABLE_MTLS: " .. disable_mtls)
+local disable_mtls = os.getenv("DISABLE_MTLS")
+ngx.log(ngx.INFO, "DISABLE_MTLS: " .. tostring(disable_mtls))
 
--- if disable_mtls ~= nil and string.lower(disable_mtls) == "true" then
---         ngx.var.target_url = "http://" .. loc
--- else
---         ngx.var.target_url = "https://" .. loc
--- end
-ngx.var.target_url = "http://" .. loc
+if disable_mtls ~= nil and string.lower(disable_mtls) == "true" then
+        ngx.var.target_url = "http://" .. loc
+else
+        ngx.var.target_url = "https://" .. loc
+end
 
 client:close()
